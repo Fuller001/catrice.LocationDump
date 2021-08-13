@@ -294,7 +294,8 @@ namespace Frontend
                 var wih = new WindowInteropHelper(this);
                 IntPtr hWnd = wih.Handle;
                 var args = Environment.GetCommandLineArgs();
-                if (args.Length > 0 && args[0] == "Top")
+                //this.Title = string.Join(",", args);
+                if (args.Length > 1 && args[1] == "Top")
                 {
                     TopMostWindow.SetTopomost(hWnd);
                 }
@@ -334,7 +335,7 @@ namespace Frontend
                     {
                         this.Title = $"{levelName}, {x:F5}, {y:F5}";
                     }));*/
-                    if (string.IsNullOrEmpty(levelName) == false && double.IsNaN(xScale))
+                    if (currentRundown != levelName)
                     {
                         if (!LocInfo.ContainsKey(levelName))
                             continue;
@@ -351,10 +352,21 @@ namespace Frontend
                         {
                             CenterImg.Source =
                                 new BitmapImage(new Uri($"file://{Environment.CurrentDirectory}/{locInfo.ImagePath}"));
+                            {
+                                //Cursor
+                                var cursorW = 32;
+                                var cursorH = 32;
+                                cursor.Width = 64;
+                                cursor.Height = 64;
+                                cursor.Margin = new Thickness(Width / 2 - cursorW, Height / 2 - cursorH,
+                                    Width / 2 - cursorW, Height / 2 - cursorH);
+                            }
                         }));
+                        currentRundown = levelName;
+
                     }
 
-                    if (!double.IsNaN(xScale) || currentRundown != levelName)
+                    if (!double.IsNaN(xScale))
                     {
                         double calcX = xScale * (x - origX) + dstX;
                         double calcY = yScale * (y - origY) + dstY;

@@ -5,14 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Frontend"
         mc:Ignorable="d"
-        Title="ExternalMiniMap" Height="450" Width="800">
+        Title="ExternalMiniMap" Height="288" Width="292">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="65*"/>
+            <ColumnDefinition Width="727*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="289*"/>
             <RowDefinition Height="130*"/>
         </Grid.RowDefinitions>
-        <Image x:Name="CenterImg" HorizontalAlignment="Left" Height="3128"  VerticalAlignment="Top" Width="4961" Margin="-747,-557,-3422,-2152" Grid.RowSpan="2"/>
-        <Slider x:Name="scaleSlider" Margin="0,10,0,0" Maximum="2" Minimum="0.5" Value="1" Height="18" VerticalAlignment="Top"/>
+        <Image x:Name="CenterImg" HorizontalAlignment="Left" Height="3128"  VerticalAlignment="Top" Width="4961" Margin="-747,-557,-3422,-2152" Grid.RowSpan="2" Grid.ColumnSpan="2"/>
+        <Slider x:Name="scaleSlider" Margin="0,10,0,0" Maximum="2" Minimum="0.2" Value="1" Height="18" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+        <Image x:Name="cursor" Width="64" Height="64" Margin="60,62,73,67" Source="symbol_arrow_player.png"  Grid.RowSpan="2" Grid.ColumnSpan="2"/>
 
     </Grid>
 </Window>

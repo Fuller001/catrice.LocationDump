@@ -87,6 +87,7 @@ namespace catrice.LocationDump
                     // You can start any process, HelloWorld is a do-nothing example.
                     myProcess.StartInfo.FileName = frontend;
                     myProcess.StartInfo.Arguments = $"{(ConfigManager.IsTopMost ? "Top" : "")}";
+                    Logger.Log($"TopMost:{(ConfigManager.IsTopMost ? "Top" : "")}");
                     myProcess.StartInfo.WorkingDirectory = assemblyFolder;
                     myProcess.StartInfo.CreateNoWindow = true;
                     myProcess.Start();

@@ -17,7 +17,7 @@ namespace catrice.LocationDump
         // Token: 0x06000035 RID: 53 RVA: 0x00002B60 File Offset: 0x00000D60
         static ConfigManager()
         {
-            string text = Path.Combine(Paths.ConfigPath, "LocationDump.cfg");
+            string text = Path.Combine(Paths.ConfigPath, "catrice.ExternalMiniMap.cfg");
             ConfigFile configFile = new ConfigFile(text, true);
             ConfigManager._IsTopMost = configFile.Bind<bool>("Nyan", "IsTopMost",
                 false, "Indicates whether ExternalMinimap window is topmost.");
