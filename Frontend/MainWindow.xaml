@@ -1,0 +1,18 @@
+﻿<Window x:Class="Frontend.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Frontend"
+        mc:Ignorable="d"
+        Title="ExternalMiniMap" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="289*"/>
+            <RowDefinition Height="130*"/>
+        </Grid.RowDefinitions>
+        <Image x:Name="CenterImg" HorizontalAlignment="Left" Height="3128"  VerticalAlignment="Top" Width="4961" Margin="-747,-557,-3422,-2152" Grid.RowSpan="2"/>
+        <Slider x:Name="scaleSlider" Margin="0,10,0,0" Maximum="2" Minimum="0.5" Value="1" Height="18" VerticalAlignment="Top"/>
+
+    </Grid>
+</Window>
