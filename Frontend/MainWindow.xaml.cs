@@ -90,7 +90,7 @@ namespace Frontend
                 imgY2 = 578f,
                 width = 2390,
                 height = 1623,
-                ImagePath = "Images/R5A1.png"
+                ImagePath = "R5A1.png"
             });
 
             LocInfo.Add("Recollect", new LocationRef
@@ -100,7 +100,7 @@ namespace Frontend
                 refX2 = 21.66232f, refY2 = 66.58588f, 
                 imgX2 = 3922f, imgY2 = 1805f,
                 width = 4961, height = 3128,
-                ImagePath = "Images/R5A2.png"
+                ImagePath = "R5A2.png"
             });
 
             LocInfo.Add("Mining", new LocationRef
@@ -115,7 +115,7 @@ namespace Frontend
                 imgY2 = 3344f,
                 width = 10442,
                 height = 6441,
-                ImagePath = "Images/R5A3.png"
+                ImagePath = "R5A3.png"
             });
 
             LocInfo.Add("Smother", new LocationRef
@@ -130,7 +130,7 @@ namespace Frontend
                 imgY2 = 1445f,
                 width = 8192,
                 height = 8168,
-                ImagePath = "Images/R5B1.png"
+                ImagePath = "R5B1.png"
             });
 
             LocInfo.Add("Discharge", new LocationRef
@@ -145,7 +145,7 @@ namespace Frontend
                 imgY2 = 362f,
                 width = 6255,
                 height = 7192,
-                ImagePath = "Images/R5B2.png"
+                ImagePath = "R5B2.png"
             });
 
             LocInfo.Add("Unseal", new LocationRef
@@ -160,7 +160,7 @@ namespace Frontend
                 imgY2 = 481f,
                 width = 4410,
                 height = 5726,
-                ImagePath = "Images/R5B3.png"
+                ImagePath = "R5B3.png"
             });
 
             LocInfo.Add("Diversion", new LocationRef
@@ -175,7 +175,7 @@ namespace Frontend
                 imgY2 = 3167f,
                 width = 5366,
                 height = 8171,
-                ImagePath = "Images/R5B4.png"
+                ImagePath = "R5B4.png"
             });
 
             LocInfo.Add("Binary", new LocationRef
@@ -190,7 +190,7 @@ namespace Frontend
                 imgY2 = 2084f,
                 width = 5203,
                 height = 7184,
-                ImagePath = "Images/R5C1.png"
+                ImagePath = "R5C1.png"
             });
 
             LocInfo.Add("Access", new LocationRef
@@ -205,7 +205,7 @@ namespace Frontend
                 imgY2 = 309f,
                 width = 9669,
                 height = 5197,
-                ImagePath = "Images/R5C2.png"
+                ImagePath = "R5C2.png"
             });
 
             LocInfo.Add("Starvation", new LocationRef
@@ -220,7 +220,7 @@ namespace Frontend
                 imgY2 = 5174f,
                 width = 5962,
                 height = 10207,
-                ImagePath = "Images/R5C3.png"
+                ImagePath = "R5C3.png"
             });
 
             LocInfo.Add("Even Deeper", new LocationRef
@@ -235,7 +235,7 @@ namespace Frontend
                 imgY2 = 1328f,
                 width = 3227,
                 height = 7709,
-                ImagePath = "Images/R5D1.png"
+                ImagePath = "R5D1.png"
             });
 
             LocInfo.Add("Error", new LocationRef
@@ -250,7 +250,7 @@ namespace Frontend
                 imgY2 = 1075f,
                 width = 9529,
                 height = 5532,
-                ImagePath = "Images/R5D2.png"
+                ImagePath = "R5D2.png"
             });
 
             LocInfo.Add("KDS Deep", new LocationRef
@@ -265,7 +265,7 @@ namespace Frontend
                 imgY2 = 9359f,
                 width = 5735,
                 height = 12843,
-                ImagePath = "Images/R5E1.png"
+                ImagePath = "R5E1.png"
             });
 
             System.Threading.Tasks.Task.Run(RunLoop);
