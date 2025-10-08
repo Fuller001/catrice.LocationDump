@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Location Dump Viewer</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #020617;
+            color: #f8fafc;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: contain;
+        }
+
+        header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            box-shadow: 0 2px 18px rgba(15, 23, 42, 0.45);
+            z-index: 2;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        header span {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            flex: 1 1 auto;
+        }
+
+        #hud-toggle {
+            flex: 0 0 auto;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            border: none;
+            background: rgba(59, 130, 246, 0.18);
+            color: #e0f2fe;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 120ms ease, transform 120ms ease;
+        }
+
+        #hud-toggle:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        #hud-toggle:active {
+            transform: scale(0.95);
+        }
+
+        main#map-shell {
+            position: relative;
+            flex: 1 1 auto;
+            touch-action: none;
+            overflow: hidden;
+            background: radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 55%), linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.95));
+            user-select: none;
+            cursor: grab;
+        }
+
+        #map-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        #map-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            filter: drop-shadow(0 20px 40px rgba(15, 23, 42, 0.6));
+        }
+
+        #map-pointer {
+            position: absolute;
+            width: 12px;
+            height: auto;
+            pointer-events: none;
+            transform-origin: 50% 70%;
+            display: none;
+            /* stronger green tint so the pointer clearly appears green across devices */
+            filter: drop-shadow(0 12px 28px rgba(15, 23, 42, 0.55)) invert(48%) sepia(92%) saturate(1000%) hue-rotate(78deg) brightness(95%) contrast(95%);
+            image-rendering: auto;
+        }
+
+        section#info-card {
+            padding: 1rem 1.2rem 1.4rem;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.65));
+            box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.35);
+            border-top: 1px solid rgba(59, 130, 246, 0.2);
+            flex: 0 0 auto;
+            max-height: 320px;
+            overflow: hidden;
+            transition: max-height 180ms ease, padding 180ms ease, opacity 180ms ease, border-color 180ms ease;
+        }
+
+        #status {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        #details {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            line-height: 1.55;
+            min-height: 2.4rem;
+        }
+
+        #controls {
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        #controls label {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            opacity: 0.85;
+        }
+
+        #zoom-slider {
+            flex: 1 1 160px;
+            accent-color: #38bdf8;
+        }
+
+        #reset-btn {
+            padding: 0.4rem 0.9rem;
+            border-radius: 999px;
+            border: none;
+            color: #0f172a;
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+            transition: transform 120ms ease, box-shadow 120ms ease;
+        }
+
+        #reset-btn:active {
+            transform: scale(0.96);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+        }
+
+        #fab-stack {
+            position: absolute;
+            right: 1.2rem;
+            bottom: 1.2rem;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 1.15rem;
+            z-index: 4;
+        }
+
+        .fab-button {
+            width: 3.25rem;
+            height: 3.25rem;
+            border-radius: 50%;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            background: rgba(56, 189, 248, 0.14);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(14, 165, 233, 0.25);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+        }
+
+        .fab-button:active {
+            transform: scale(0.94);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+        }
+
+        .fab-button img {
+            width: 20px;
+            height: 20px;
+            filter: invert(66%) sepia(96%) saturate(704%) hue-rotate(161deg) brightness(95%) contrast(93%);
+        }
+
+        #brush-panel {
+            position: absolute;
+            right: 5.9rem;
+            bottom: 1.2rem;
+            width: 9.5rem;
+            padding: 0.6rem 0.85rem;
+            border-radius: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 140ms ease, transform 140ms ease;
+            z-index: 4;
+            min-height: 64px;
+            /* fixed minimum to avoid layout shifts */
+        }
+
+        #brush-panel.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        #brush-panel label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(226, 232, 240, 0.88);
+        }
+
+        #brush-size-display {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: rgba(148, 163, 184, 0.9);
+            letter-spacing: 0.02em;
+        }
+
+        #brush-size {
+            width: 100%;
+            accent-color: #38bdf8;
+        }
+
+        /* preview container has fixed height so panel size doesn't change */
+        #brush-preview {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+        }
+
+        /* actual bar is scaled vertically via transform to show thickness without altering layout */
+        #brush-preview::before {
+            content: '';
+            display: block;
+            width: 80%;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.6), rgba(14, 165, 233, 0.95));
+            transform-origin: center center;
+            transform: scaleY(var(--brush-scale, 1));
+            transition: transform 100ms linear;
+        }
+
+        #draw-toggle.active {
+            background: rgba(251, 146, 60, 0.22);
+            border-color: rgba(251, 146, 60, 0.35);
+            box-shadow: 0 10px 22px rgba(251, 146, 60, 0.35);
+        }
+
+        #draw-toggle.active img {
+            filter: invert(64%) sepia(64%) saturate(749%) hue-rotate(-12deg) brightness(108%) contrast(102%);
+        }
+
+        #paint-canvas {
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        body.hud-hidden #fab-stack {
+            bottom: 1.6rem;
+        }
+
+        body.hud-hidden #brush-panel {
+            bottom: 1.6rem;
+        }
+
+        .hint {
+            margin-top: 0.6rem;
+            font-size: 0.75rem;
+            opacity: 0.6;
+        }
+
+        body.no-data #map-shell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.no-data #map-shell::after {
+            content: '等待地图数据…';
+            font-size: 1rem;
+            color: rgba(248, 250, 252, 0.7);
+            letter-spacing: 0.1em;
+        }
+
+        body.no-data #map-pointer {
+            display: none !important;
+        }
+
+        body.dragging main#map-shell {
+            cursor: grabbing;
+        }
+
+        body.hud-hidden section#info-card {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-top-color: transparent;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.hud-hidden section#info-card>* {
+            opacity: 0;
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            #fab-stack {
+                right: 1rem;
+                bottom: 1rem;
+            }
+
+            #brush-panel {
+                right: 4.8rem;
+                bottom: 1rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            header {
+                padding: 0.85rem 1rem;
+            }
+
+            #controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #reset-btn {
+                width: 100%;
+            }
+
+            section#info-card {
+                padding-bottom: 1.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="no-data hud-hidden">
+    <header>
+        <h1>Location Dump Viewer</h1>
+        <span>LAN Companion</span>
+        <button id="hud-toggle" type="button">显示面板</button>
+    </header>
+    <main id="map-shell">
+        <div id="map-layer">
+            <img id="map-image" alt="Rundown map" draggable="false" />
+            <canvas id="paint-canvas" style="position:absolute; left:0; top:0;"></canvas>
+        </div>
+        <img id="map-pointer" src="/images/symbol_arrow_player.png" alt="玩家指针" draggable="false" />
+        <div id="fab-stack">
+            <button id="reset-fab" class="fab-button" type="button" title="居中玩家"><img src="gps.svg" alt="居中玩家"
+                    draggable="false" /></button>
+            <button id="draw-toggle" class="fab-button" title="绘制" aria-pressed="false"><img src="brush.svg" alt="绘图"
+                    draggable="false" /></button>
+            <button id="clear-fab" class="fab-button" title="清除绘画" type="button"><img src="trash.svg" alt="清除绘画"
+                    draggable="false" /></button>
+        </div>
+        <div id="brush-panel" aria-hidden="true">
+            <label for="brush-size">
+                <span>画笔粗细</span>
+                <span id="brush-size-display">4px</span>
+            </label>
+            <input type="range" id="brush-size" min="2" max="12" step="1" value="4" />
+            <div id="brush-preview"></div>
+        </div>
+    </main>
+    <section id="info-card">
+        <div id="status">正在连接…</div>
+        <div id="details"></div>
+        <div id="controls">
+            <label>缩放 <span id="zoom-value">1.0x</span></label>
+            <input type="range" id="zoom-slider" min="0.1" max="5.0" step="0.05" value="1.0" />
+            <button id="reset-btn">居中玩家</button>
+        </div>
+        <div class="hint">提示：可拖动或滑动调整视野，点击“居中玩家”恢复自动跟随。</div>
+    </section>
+    <script>
+        const shell = document.getElementById('map-shell');
+        const layer = document.getElementById('map-layer');
+        const image = document.getElementById('map-image');
+        const pointer = document.getElementById('map-pointer');
+        const statusEl = document.getElementById('status');
+        const detailsEl = document.getElementById('details');
+        const zoomSlider = document.getElementById('zoom-slider');
+        const zoomValue = document.getElementById('zoom-value');
+        const resetBtn = document.getElementById('reset-btn');
+        const hudToggle = document.getElementById('hud-toggle');
+        const resetFab = document.getElementById('reset-fab');
+        const bodyEl = document.body;
+        const brushPanel = document.getElementById('brush-panel');
+        const brushSlider = document.getElementById('brush-size');
+        const brushSizeDisplay = document.getElementById('brush-size-display');
+        const brushPreview = document.getElementById('brush-preview');
+
+        const WS_PATH = '/ws';
+        const RECONNECT_DELAY = 1500;
+
+        let socket = null;
+        let reconnectTimer = null;
+
+        let zoom = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let autoFollow = true;
+        let dragging = false;
+        let activePointerId = null;
+        let lastClientX = 0;
+        let lastClientY = 0;
+
+        const pointerData = { x: 0, y: 0, angle: 0 };
+        const mapSize = { width: 1, height: 1 };
+        let currentImageKey = '';
+        let userChangedZoom = false;
+        let hudVisible = false;
+        let pinchStartDistance = 0;
+        let pinchStartZoom = 1.0;
+        let brushBaseSize = brushSlider ? Number(brushSlider.value) : 4;
+
+        const MIN_ZOOM = 0.1;
+        const MAX_ZOOM = 3.5;
+
+        function getWebSocketUrl() {
+            const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            return scheme + window.location.host + WS_PATH;
+        }
+
+        function scheduleReconnect(message) {
+            if (message) {
+                statusEl.textContent = message + '，重试中…';
+            }
+            bodyEl.classList.add('no-data');
+            if (reconnectTimer) {
+                return;
+            }
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                connectSocket();
+            }, RECONNECT_DELAY);
+        }
+
+        function connectSocket() {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+            try {
+                socket = new WebSocket(getWebSocketUrl());
+            } catch (err) {
+                console.error('WebSocket 连接失败', err);
+                scheduleReconnect('无法建立连接');
+                return;
+            }
+
+            socket.addEventListener('open', () => {
+                statusEl.textContent = '已连接，等待数据…';
+            });
+
+            socket.addEventListener('message', event => {
+                try {
+                    const payload = JSON.parse(event.data);
+                    handleNewState(payload);
+                } catch (err) {
+                    console.error('解析数据失败', err);
+                }
+            });
+
+            socket.addEventListener('close', () => {
+                socket = null;
+                scheduleReconnect('连接已断开');
+            });
+
+            socket.addEventListener('error', err => {
+                console.error('WebSocket 错误', err);
+                if (socket) {
+                    try { socket.close(); } catch (_) { }
+                }
+            });
+        }
+
+        function updateZoomDisplay() {
+            zoomValue.textContent = zoom.toFixed(1) + 'x';
+        }
+
+        function clampZoom(value) {
+            return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+        }
+
+        function updateBrushPreview() {
+            if (!brushSizeDisplay || !brushPreview) {
+                return;
+            }
+
+            const displayValue = Math.round(Math.max(2, Math.min(24, brushBaseSize)));
+            brushSizeDisplay.textContent = displayValue + 'px';
+            // scale the inner bar vertically without changing container height
+            const scale = Math.max(0.2, Math.min(3, displayValue / 6));
+            brushPreview.style.setProperty('--brush-scale', scale.toString());
+        }
+
+        const BASE_POINTER_PX = 12;
+
+        function getPointerSize() {
+            const dpr = window.devicePixelRatio || 1;
+            const vpScale = Math.max(1, window.innerWidth / 900);
+            const raw = BASE_POINTER_PX * dpr * vpScale;
+            const size = Math.round(Math.max(8, Math.min(36, raw)));
+            return size;
+        }
+
+        function applyTransform() {
+            layer.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoom + ')';
+            const screenX = panX + pointerData.x * zoom;
+            const screenY = panY + pointerData.y * zoom;
+            pointer.style.left = screenX + 'px';
+            pointer.style.top = screenY + 'px';
+            pointer.style.width = getPointerSize() + 'px';
+            pointer.style.transform = 'translate(-50%, -70%) rotate(' + pointerData.angle + 'deg)';
+            if (Math.abs(parseFloat(zoomSlider.value) - zoom) > 0.02) {
+                zoomSlider.value = zoom.toFixed(2);
+            }
+            updateZoomDisplay();
+        }
+
+        function centerOnPointer() {
+            const rect = shell.getBoundingClientRect();
+            panX = rect.width / 2 - pointerData.x * zoom;
+            panY = rect.height / 2 - pointerData.y * zoom;
+        }
+
+        function setHasData(hasData) {
+            bodyEl.classList.toggle('no-data', !hasData);
+            pointer.style.display = hasData ? 'block' : 'none';
+            if (!hasData) {
+                detailsEl.textContent = '';
+            }
+        }
+
+        function normalizeAngle(angle) {
+            let value = angle % 360;
+            if (value < 0) {
+                value += 360;
+            }
+            return value;
+        }
+
+        function handleNewState(data) {
+            if (!data || !data.hasData) {
+                setHasData(false);
+                statusEl.textContent = '等待数据…';
+                return;
+            }
+
+            setHasData(true);
+            statusEl.textContent = data.levelName + ' · (' +
+                Number(data.playerX).toFixed(2) + ', ' +
+                Number(data.playerY).toFixed(2) + ')';
+
+            const updatedText = data.updated ? new Date(data.updated).toLocaleTimeString() : 'N/A';
+            detailsEl.innerHTML =
+                '客户端缩放：' + Number(data.scale).toFixed(2) + 'x<br/>' +
+                '指向角度：' + Number(data.angle).toFixed(1) + '°<br/>' +
+                '最新同步：' + updatedText;
+
+            const imgKey = data.imagePath || '';
+            if (imgKey && imgKey !== currentImageKey) {
+                currentImageKey = imgKey;
+                const cacheBust = data.updated ? ('?t=' + encodeURIComponent(data.updated)) : '';
+                image.src = '/images/' + encodeURIComponent(imgKey) + cacheBust;
+                userChangedZoom = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            const width = Number(data.mapWidth) || 1;
+            const height = Number(data.mapHeight) || 1;
+
+            if (width !== mapSize.width || height !== mapSize.height) {
+                mapSize.width = width;
+                mapSize.height = height;
+                layer.style.width = width + 'px';
+                layer.style.height = height + 'px';
+                image.style.width = width + 'px';
+                image.style.height = height + 'px';
+                resetCanvasForMap(width, height);
+
+                if (!userChangedZoom && width > 0 && height > 0) {
+                    const rect = shell.getBoundingClientRect();
+                    const fitRaw = Math.min(rect.width / width, rect.height / height);
+                    if (fitRaw > 0 && isFinite(fitRaw)) {
+                        const snapped = Math.min(3.5, Math.max(0.6, Math.round(fitRaw * 10) / 10));
+                        if (snapped > 0) {
+                            zoom = snapped;
+                        }
+                    }
+                }
+            }
+
+            pointerData.x = Number(data.pointerX) || 0;
+            pointerData.y = Number(data.pointerY) || 0;
+            pointerData.angle = normalizeAngle(Number(data.angle) || 0);
+
+            if (autoFollow) {
+                centerOnPointer();
+            }
+
+            applyTransform();
+        }
+
+        image.addEventListener('load', () => {
+            applyTransform();
+        });
+
+        zoomSlider.addEventListener('input', event => {
+            zoom = parseFloat(event.target.value);
+            autoFollow = false;
+            userChangedZoom = true;
+            applyTransform();
+        });
+
+        // --- Wheel zoom for desktop ---
+        shell.addEventListener('wheel', event => {
+            if (event.ctrlKey) {
+                // allow browser pinch-zoom fallback
+                return;
+            }
+            event.preventDefault();
+            const delta = -event.deltaY || event.wheelDelta || -event.detail;
+            const factor = delta > 0 ? 1.08 : 0.92;
+            const rect = shell.getBoundingClientRect();
+            const cx = event.clientX - rect.left;
+            const cy = event.clientY - rect.top;
+            const newZoom = clampZoom(zoom * factor);
+            applyPinchZoom(newZoom, cx, cy);
+        }, { passive: false });
+
+        // --- Paint canvas setup ---
+        const canvas = document.getElementById('paint-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let drawEnabled = false;
+        let lastX = 0, lastY = 0;
+
+        function resetCanvasForMap(width, height) {
+            const w = Math.max(1, Math.round(width));
+            const h = Math.max(1, Math.round(height));
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawLine(fromX, fromY, toX, toY) {
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = '#ff3b30';
+            ctx.lineWidth = Math.max(0.75, (brushBaseSize || 4) / zoom);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function screenToCanvasCoords(clientX, clientY) {
+            const rect = shell.getBoundingClientRect();
+            const screenX = clientX - rect.left;
+            const screenY = clientY - rect.top;
+            return {
+                x: (screenX - panX) / zoom,
+                y: (screenY - panY) / zoom
+            };
+        }
+
+        const drawToggle = document.getElementById('draw-toggle');
+        const clearFab = document.getElementById('clear-fab');
+
+        function setDrawEnabled(enabled) {
+            drawEnabled = !!enabled;
+            drawing = false;
+            drawToggle.classList.toggle('active', drawEnabled);
+            drawToggle.setAttribute('aria-pressed', drawEnabled ? 'true' : 'false');
+            canvas.style.pointerEvents = drawEnabled ? 'auto' : 'none';
+            canvas.style.cursor = drawEnabled ? 'crosshair' : 'default';
+            if (brushPanel) {
+                brushPanel.classList.toggle('visible', drawEnabled);
+                brushPanel.setAttribute('aria-hidden', drawEnabled ? 'false' : 'true');
+            }
+        }
+
+        setDrawEnabled(false);
+        resetCanvasForMap(mapSize.width, mapSize.height);
+        updateBrushPreview();
+
+        if (brushSlider) {
+            brushSlider.addEventListener('input', event => {
+                const value = Number(event.target.value);
+                if (!Number.isNaN(value)) {
+                    brushBaseSize = value;
+                    updateBrushPreview();
+                }
+            });
+        }
+
+        drawToggle.addEventListener('click', () => {
+            setDrawEnabled(!drawEnabled);
+        });
+
+        let clearTimeoutId = null;
+        clearFab.addEventListener('pointerdown', () => {
+            clearTimeoutId = setTimeout(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                clearTimeoutId = null;
+            }, 700);
+        });
+
+        // Short tap or release immediately clears without confirmation; long-press also clears.
+        clearFab.addEventListener('pointerup', () => {
+            if (clearTimeoutId) {
+                clearTimeout(clearTimeoutId);
+                clearTimeoutId = null;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+        clearFab.addEventListener('pointerleave', () => {
+            if (clearTimeoutId) {
+                clearTimeout(clearTimeoutId);
+                clearTimeoutId = null;
+            }
+        });
+        clearFab.addEventListener('pointercancel', () => {
+            if (clearTimeoutId) {
+                clearTimeout(clearTimeoutId);
+                clearTimeoutId = null;
+            }
+        });
+
+        canvas.addEventListener('pointerdown', e => {
+            if (!drawEnabled) {
+                return;
+            }
+            e.preventDefault();
+            const p = screenToCanvasCoords(e.clientX, e.clientY);
+            lastX = p.x;
+            lastY = p.y;
+            drawing = true;
+            canvas.setPointerCapture(e.pointerId);
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if (!drawing) {
+                return;
+            }
+            e.preventDefault();
+            const p = screenToCanvasCoords(e.clientX, e.clientY);
+            drawLine(lastX, lastY, p.x, p.y);
+            lastX = p.x;
+            lastY = p.y;
+        });
+
+        function stopDrawing(e) {
+            if (!drawing) {
+                return;
+            }
+            drawing = false;
+            try { canvas.releasePointerCapture(e.pointerId); } catch (_) { }
+        }
+
+        canvas.addEventListener('pointerup', stopDrawing);
+        canvas.addEventListener('pointercancel', stopDrawing);
+
+        function recenterPlayer() {
+            autoFollow = true;
+            userChangedZoom = false;
+            centerOnPointer();
+            applyTransform();
+        }
+
+        resetBtn.addEventListener('click', recenterPlayer);
+        resetFab.addEventListener('click', recenterPlayer);
+
+        function distanceBetween(a, b) {
+            const dx = a.clientX - b.clientX;
+            const dy = a.clientY - b.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function applyPinchZoom(newZoom, centerX, centerY) {
+            const clamped = clampZoom(newZoom);
+            if (clamped === zoom) {
+                return;
+            }
+
+            const scaleFactor = clamped / zoom;
+            const offsetX = centerX - panX;
+            const offsetY = centerY - panY;
+            panX = centerX - offsetX * scaleFactor;
+            panY = centerY - offsetY * scaleFactor;
+
+            zoom = clamped;
+            userChangedZoom = true;
+            autoFollow = false;
+            applyTransform();
+        }
+
+        const activeTouches = new Map();
+
+        shell.addEventListener('pointerdown', event => {
+            try {
+                const interactive = event.target && (event.target.closest && event.target.closest('button, input, select, textarea, canvas, label'));
+                if (interactive) {
+                    return;
+                }
+            } catch (ex) {
+                // ignore
+            }
+
+            event.preventDefault();
+            shell.setPointerCapture(event.pointerId);
+            activeTouches.set(event.pointerId, event);
+
+            if (activeTouches.size === 1) {
+                dragging = true;
+                autoFollow = false;
+                activePointerId = event.pointerId;
+                lastClientX = event.clientX;
+                lastClientY = event.clientY;
+                bodyEl.classList.add('dragging');
+            } else if (activeTouches.size === 2) {
+                dragging = false;
+                bodyEl.classList.remove('dragging');
+                const [first, second] = Array.from(activeTouches.values());
+                pinchStartDistance = distanceBetween(first, second);
+                pinchStartZoom = zoom;
+            }
+        });
+
+        shell.addEventListener('pointermove', event => {
+            if (!activeTouches.has(event.pointerId)) {
+                return;
+            }
+
+            activeTouches.set(event.pointerId, event);
+
+            if (activeTouches.size === 1 && dragging && event.pointerId === activePointerId) {
+                event.preventDefault();
+                const dx = event.clientX - lastClientX;
+                const dy = event.clientY - lastClientY;
+                panX += dx;
+                panY += dy;
+                lastClientX = event.clientX;
+                lastClientY = event.clientY;
+                applyTransform();
+            }
+            else if (activeTouches.size === 2) {
+                event.preventDefault();
+                const [first, second] = Array.from(activeTouches.values());
+                const currentDistance = distanceBetween(first, second);
+                if (pinchStartDistance > 0) {
+                    const zoomFactor = currentDistance / pinchStartDistance;
+                    const centerX = (first.clientX + second.clientX) / 2;
+                    const centerY = (first.clientY + second.clientY) / 2;
+                    applyPinchZoom(pinchStartZoom * zoomFactor, centerX, centerY);
+                }
+            }
+        });
+
+        function stopTrackingPointer(event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            activeTouches.delete(event.pointerId);
+
+            if (activeTouches.size < 2) {
+                pinchStartDistance = 0;
+            }
+
+            if (dragging && event.pointerId === activePointerId) {
+                shell.releasePointerCapture(event.pointerId);
+                dragging = false;
+                activePointerId = null;
+                bodyEl.classList.remove('dragging');
+            }
+
+            if (activeTouches.size === 0) {
+                shell.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        shell.addEventListener('pointerup', stopTrackingPointer);
+        shell.addEventListener('pointercancel', stopTrackingPointer);
+        shell.addEventListener('pointerleave', event => {
+            if (activeTouches.has(event.pointerId)) {
+                stopTrackingPointer(event);
+            }
+        });
+
+        shell.addEventListener('dragstart', event => event.preventDefault());
+        image.addEventListener('dragstart', event => event.preventDefault());
+        pointer.addEventListener('dragstart', event => event.preventDefault());
+        shell.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('selectstart', event => event.preventDefault());
+
+        window.addEventListener('resize', () => {
+            if (autoFollow) {
+                centerOnPointer();
+            }
+            applyTransform();
+        });
+
+        hudToggle.addEventListener('click', () => {
+            hudVisible = !hudVisible;
+            bodyEl.classList.toggle('hud-hidden', !hudVisible);
+            hudToggle.textContent = hudVisible ? '隐藏面板' : '显示面板';
+        });
+
+        updateZoomDisplay();
+        connectSocket();
+    </script>
+</body>
+
+</html>
